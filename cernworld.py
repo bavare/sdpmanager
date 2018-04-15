@@ -1,6 +1,5 @@
 import subprocess as sp
 import os
-import shutil
 import manyworlds
 import htcondor as htc
 
@@ -15,17 +14,18 @@ class CernWorld(manyworlds.World):
     def __init__(self):
         pass
 
-    def _toafs(self, filename):
-        shutil.move(filename, self.afsdir + os.path.basename(filename))
-
-    def _fromafs(self, filename):
-        shutil.move(self.afsdir + os.path.basename(filename), filename)
-
-    def warmup(self, sdpdata):
-        try:
-            list(map(self._fromafs, sdpdata.xmlfilenames + [sdpdata.checkpointfile]))
-        except FileNotFoundError:
-            pass
+    # def _toafs(self, filename):
+    #     shutil.move(filename, self.afsdir + os.path.basename(filename))
+    #
+    # def _fromafs(self, filename):
+    #     shutil.move(self.afsdir + os.path.basename(filename), filename)
+    #
+    # def warmup(self, sdpdata):
+    #     try:
+    #         list(map(self._fromafs, sdpdata.xmlfilenames +
+    #                                    [sdpdata.checkpointfile]))
+    #     except FileNotFoundError:
+    #         pass
 
     def createSdpFiles(self, sdpdata, options=None):
         my_env = os.environ.copy()
@@ -43,12 +43,14 @@ class CernWorld(manyworlds.World):
 
     def submit(self, sdpdata, options=None):
         submissiondict = {"executable": self.bindir + "clusterstarter.sh",
-                          "arguments": self.bindir + \
-                                       "gradstudent.py -w cern " + \
-                                       sdpdata.filename,
+                          "arguments": self.bindir +
+                          "gradstudent.py -w cern " +
+                          sdpdata.filename,
                           "log": sdpdata.filename + '.log',
-                          "output": sdpdata.filename + '.out.' + str(sdpdata.numlogs()).zfill(3),
-                          "error": sdpdata.filename + '.err.' + str(sdpdata.numlogs()).zfill(3)}
+                          "output": sdpdata.filename + '.out.' +
+                          str(sdpdata.numlogs()).zfill(3),
+                          "error": sdpdata.filename + '.err.' +
+                          str(sdpdata.numlogs()).zfill(3)}
         sdpdict = sdpdata.getdict('cluster')
         # add "+" because that's what htcondor can stomach
         if sdpdict.get('MaxRuntime'):
@@ -111,21 +113,20 @@ class CernWorld(manyworlds.World):
         #                       logfilename, submissionid], encoding='utf-8')
         # print(op)
 
-
-    def cooldown(self, sdpdata):
-        tr = sdpdata.getlogitem('terminateReason')
-        if tr == 'maxRuntime exceeded' or tr == 'maxIterations exceeded':
-            try:
-                list(map(self._toafs,
-                         sdpdata.xmlfilenames +
-                         [sdpdata.checkpointfile, sdpdata.backupcheckpointfile]))
-            except FileNotFoundError:
-                print('SDPB timed out but could not salvage xml and ck files.')
-        else:
-            try:
-                # list(map(os.remove, sdpdata.xmlfilenames))
-                os.remove(sdpdata.outfile)
-                os.remove(sdpdata.checkpointfile)
-                os.remove(sdpdata.backupcheckpointfile)
-            except FileNotFoundError:
-                print('Could not find all sdpb files to remove. Oh well.')
+# def cooldown(self, sdpdata):
+#     tr = sdpdata.getlogitem('terminateReason')
+#     if tr == 'maxRuntime exceeded' or tr == 'maxIterations exceeded':
+#         try:
+#             list(map(self._toafs,
+#                      sdpdata.xmlfilenames +
+#                      [sdpdata.checkpointfile, sdpdata.backupcheckpointfile]))
+#         except FileNotFoundError:
+#             print('SDPB timed out but could not salvage xml and ck files.')
+#     else:
+#         try:
+#             # list(map(os.remove, sdpdata.xmlfilenames))
+#             os.remove(sdpdata.outfile)
+#             os.remove(sdpdata.checkpointfile)
+#             os.remove(sdpdata.backupcheckpointfile)
+#         except FileNotFoundError:
+#             print('Could not find all sdpb files to remove. Oh well.')

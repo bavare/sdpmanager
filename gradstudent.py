@@ -4,6 +4,7 @@ import sys
 import subprocess
 import os
 import os.path
+import shutil
 import sdpdatafile
 import argparse
 import manyworlds
@@ -23,7 +24,47 @@ world = manyworlds.getworld(args.world)
 sdpdata = sdpdatafile.SdpDataFile(args.filename)
 print('Running with ' + args.filename + '.')
 
-world.warmup(sdpdata)
+
+def getfrom(dir, destfile, action):
+    if action is None:
+        return
+    sourcefile = dir + os.path.basename(destfile)
+    if os.path.isfile(sourcefile):
+        if action == 'move':
+            shutil.move(sourcefile, destfile)
+            print('Moved ' + sourcefile + ' to ' + destfile + '.')
+        elif action == 'copy':
+            shutil.copyfile(sourcefile, destfile)
+            print('Copied ' + sourcefile + ' to ' + destfile + '.')
+    else:
+        print('Did not find ' + sourcefile + ' to get.')
+
+
+def pushto(dir, origfile, action):
+    if action is None:
+        return
+    if os.path.isfile(origfile):
+        if action == 'move':
+            destfile = dir + os.path.basename(origfile)
+            shutil.move(origfile, destfile)
+            print('Moved ' + origfile + ' to ' + destfile + '.')
+        elif action == 'copy':
+            destfile = dir + os.path.basename(origfile)
+            shutil.copyfile(origfile, destfile)
+            print('Copied ' + origfile + ' to ' + destfile + '.')
+        elif action == 'remove':
+            os.remove(origfile)
+            print('Removed ' + origfile + '.')
+    else:
+        print('Did not find ' + origfile + ' to push.')
+
+
+mydict = sdpdata.getdict('gradstudent')
+if mydict is not None:
+    dir = mydict.get('tempdir')
+    action = mydict.get('getaction')
+    list(map(lambda file: getfrom(dir, file, action),
+             sdpdata.xmlfilenames + [sdpdata.checkpointfile]))
 
 xmlfiles = sdpdata.xmlfilenames
 if xmlfiles:
@@ -77,6 +118,16 @@ except subprocess.CalledProcessError as e:
 except IOError:
     sdpdata.writelog('terminateReason', 'Out file not found')
 
-world.cooldown(sdpdata)
-
+mydict = sdpdata.getdict('gradstudent')
+if mydict is not None:
+    dir = mydict.get('tempdir')
+    action = mydict.get('pushaction')
+    pushwhen = mydict.get('pushwhen')
+    tr = sdpdata.getlogitem('terminateReason')
+    timedout = (tr == 'maxRuntime exceeded' or tr == 'maxIterations exceeded')
+    if pushwhen is None or \
+       (pushwhen == 'timedout' and timedout) or \
+       (pushwhen == 'nottimedout' and not timedout):
+        list(map(lambda file: pushto(dir, file, action),
+                 sdpdata.xmlfilenames + [sdpdata.checkpointfile]))
 sdpdata.writelog('submissionresult', 'completed')
