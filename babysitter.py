@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import argparse
 import datetime
 import sdpdatafile
@@ -7,7 +8,7 @@ import os.path
 import sys
 import manyworlds
 import subprocess as sp
-from multiprocessing.dummy import Pool as ThreadPool
+# from multiprocessing.dummy import Pool as ThreadPool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filenames', metavar='fn', nargs='+',
@@ -35,7 +36,7 @@ world = manyworlds.getworld(args.world)
 def submit(sdpdata):
     print('Submitting ' + sdpdata.filename + '.')
     # log submission time
-    sdpdata.adddict('log', {})
+    sdpdata.adddict('log', {}, append=False)
     now = str(datetime.datetime.now())
     sdpdata.writelog('submissiontime', now)
     # submit
@@ -52,7 +53,7 @@ def submit(sdpdata):
 def handle(oldfilename):
     filename = postdoc.analyze(sdpdatafile.SdpDataFile(oldfilename))
     if filename is None:
-        print('Done with ' + oldfilename + '.')
+        print('Will not submit with ' + oldfilename + '.')
         return None
     if filename != oldfilename:
         print('File ' + oldfilename + ' replaced with ' + filename + '.')
@@ -65,7 +66,8 @@ def handle(oldfilename):
 
     # submit if necessary
     submissionid = sdpdata.getlogitem('submissionid')
-    if submissionid is None:
+    submissionresult = sdpdata.getlogitem('submissionresult')
+    if submissionid is None or submissionresult == 'completed':
         submissionid = submit(sdpdata)
     else:
         print('Found existing submission for ' + filename + '.')
@@ -73,6 +75,7 @@ def handle(oldfilename):
             if not world.isreallyrunning(submissionid):
                 print('Submission of ' + filename + ' seems to have failed.',
                       file=sys.stderr)
+                sdpdata.writelog('submissionresult', 'failed')
 
     # wait for completion
     if args.pause:
@@ -86,8 +89,8 @@ def handle(oldfilename):
                   file=sys.stderr)
 
 
-pool = ThreadPool(len(sdpDataFilenames))
-results = pool.map(handle, sdpDataFilenames)
-# results = list(map(handle, sdpDataFilenames))
-pool.close()
-pool.join()
+# pool = ThreadPool(len(sdpDataFilenames))
+# results = pool.map(handle, sdpDataFilenames)
+results = list(map(handle, sdpDataFilenames))
+# pool.close()
+# pool.join()

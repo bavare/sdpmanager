@@ -8,7 +8,8 @@ import sdpdatafile
 
 
 def analyze(sdpdata):
-    if sdpdata.getlogitem('done') is not None:
+    if sdpdata.getlogitem('done') is not None or \
+       sdpdata.getlogitem('submissionresult') == 'failed':
         return None
 
     tr = sdpdata.getlogitem('terminateReason')
@@ -19,27 +20,27 @@ def analyze(sdpdata):
         return sdpdata.filename
 
     if tr == 'maxComplementarity exceeded':
-        iP = sdpdata.getdict('sdpbParams').get('initialMatrixScalePrimal')
-        if iP is not None:
-            newiP = str(mpmath.mpf(iP)/100)
-        else:
-            newiP = '1e18'
-        iD = sdpdata.getdict('sdpbParams').get('initialMatrixScaleDual')
-        if iD is not None:
-            newiD = str(mpmath.mpf(iD)/100)
-        else:
-            newiD = '1e18'
-        sdpdata.adddict('sdpbParams',
-                        {'initialMatrixScalePrimal': newiP},
-                        {'initialMatrixScaleDual': newiD},
-                        overwrite=True)
-        return sdpdata.filename
+        # iP = sdpdata.getdict('sdpbParams').get('initialMatrixScalePrimal')
+        # if iP is not None:
+        #     newiP = str(mpmath.mpf(iP)/100)
+        # else:
+        #     newiP = '1e18'
+        # iD = sdpdata.getdict('sdpbParams').get('initialMatrixScaleDual')
+        # if iD is not None:
+        #     newiD = str(mpmath.mpf(iD)/100)
+        # else:
+        #     newiD = '1e18'
+        # sdpdata.adddict('sdpbParams',
+        #                 {'initialMatrixScalePrimal': newiP,
+        #                  'initialMatrixScaleDual': newiD},
+        #                 overwrite=True)
+        return None
 
     if tr == 'primal feasible jump detected' or \
        tr == 'dual feasible jump detected':
         prec = sdpdata.getdict('sdpbParams').get('precision')
         if prec is not None:
-            newprec = str(mpmath.mpf(iP * 2))
+            newprec = str(mpmath.mpf(prec * 2))
         else:
             newprec = '800'
         sdpdata.adddict('sdpbParams',

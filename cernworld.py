@@ -1,5 +1,6 @@
 import subprocess as sp
 import os
+import shutil
 import manyworlds
 import htcondor as htc
 
@@ -15,14 +16,14 @@ class CernWorld(manyworlds.World):
         pass
 
     def _toafs(self, filename):
-        os.rename(filename, self.afsdir + os.path.basename(filename))
+        shutil.move(filename, self.afsdir + os.path.basename(filename))
 
     def _fromafs(self, filename):
-        os.rename(self.afsdir + os.path.basename(filename), filename)
+        shutil.move(self.afsdir + os.path.basename(filename), filename)
 
     def warmup(self, sdpdata):
         try:
-            map(self._fromafs, sdpdata.xmlfilenames + [sdpdata.checkpointfile])
+            list(map(self._fromafs, sdpdata.xmlfilenames + [sdpdata.checkpointfile]))
         except FileNotFoundError:
             pass
 
@@ -42,12 +43,12 @@ class CernWorld(manyworlds.World):
 
     def submit(self, sdpdata, options=None):
         submissiondict = {"executable": self.bindir + "clusterstarter.sh",
-                          "arguments": self.bindir +
-                          "gradstudent.py -w cern " +
-                          sdpdata.filename,
+                          "arguments": self.bindir + \
+                                       "gradstudent.py -w cern " + \
+                                       sdpdata.filename,
                           "log": sdpdata.filename + '.log',
-                          "output": sdpdata.filename + '.out',
-                          "error": sdpdata.filename + '.out'}
+                          "output": sdpdata.filename + '.out.' + str(sdpdata.numlogs()).zfill(3),
+                          "error": sdpdata.filename + '.err.' + str(sdpdata.numlogs()).zfill(3)}
         sdpdict = sdpdata.getdict('cluster')
         # add "+" because that's what htcondor can stomach
         if sdpdict.get('MaxRuntime'):
@@ -88,18 +89,41 @@ class CernWorld(manyworlds.World):
         if logfilename is not None:
             sp.run(['condor_wait', logfilename, submissionid])
 
+    def isreallyrunning(self, submissionid):
+        coll = htc.Collector()
+        schedd = htc.Schedd(coll.locate(htc.DaemonTypes.Schedd))
+        it = schedd.xquery(requirements='ClusterId =?= ' + submissionid,
+                           projection=['JobStatus'])
+        # 0	Unexpanded
+        # 1	Idle
+        # 2	Running
+        # 3	Removed
+        # 4	Completed
+        # 5	Held
+        # 6	Submission_err
+        for i in it:
+            if i['JobStatus'] == 1 or i['JobStatus'] == 2:
+                return True
+        return False
+        # logfilename = self.getlogfilename(submissionid)
+        # print(logfilename)
+        # op = sp.check_output(['condor_wait', '-wait', '-1', '-status',
+        #                       logfilename, submissionid], encoding='utf-8')
+        # print(op)
+
+
     def cooldown(self, sdpdata):
         tr = sdpdata.getlogitem('terminateReason')
         if tr == 'maxRuntime exceeded' or tr == 'maxIterations exceeded':
             try:
-                map(self._toafs,
-                    sdpdata.xmlfiles +
-                    [sdpdata.checkpointfile, sdpdata.backupcheckpointfile])
+                list(map(self._toafs,
+                         sdpdata.xmlfilenames +
+                         [sdpdata.checkpointfile, sdpdata.backupcheckpointfile]))
             except FileNotFoundError:
                 print('SDPB timed out but could not salvage xml and ck files.')
         else:
             try:
-                list(map(os.remove, sdpdata.xmlfilenames))
+                # list(map(os.remove, sdpdata.xmlfilenames))
                 os.remove(sdpdata.outfile)
                 os.remove(sdpdata.checkpointfile)
                 os.remove(sdpdata.backupcheckpointfile)

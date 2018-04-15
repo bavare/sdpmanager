@@ -2,10 +2,13 @@
 import time
 import sys
 import subprocess
+import os
 import os.path
 import sdpdatafile
 import argparse
 import manyworlds
+
+print(os.getcwd())
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filename', metavar='file', help='an sdp data file')
@@ -75,3 +78,5 @@ except IOError:
     sdpdata.writelog('terminateReason', 'Out file not found')
 
 world.cooldown(sdpdata)
+
+sdpdata.writelog('submissionresult', 'completed')
