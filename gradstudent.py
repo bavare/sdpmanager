@@ -3,9 +3,8 @@ import time
 import sys
 import subprocess
 import os
-import os.path
-import shutil
 import sdpdatafile
+import simplelogger
 import argparse
 import manyworlds
 
@@ -22,84 +21,46 @@ if not os.path.isfile(args.filename):
 world = manyworlds.getworld(args.world)
 
 sdpdata = sdpdatafile.SdpDataFile(args.filename)
-print('Running with ' + args.filename + '.')
+log = simplelogger.SimpleLogWriter('run', sdpdata.logfilename)
+log.write('status', 'running')
 
-
-def getfrom(dir, destfile, action):
-    if action is None:
-        return
-    sourcefile = dir + os.path.basename(destfile)
-    if os.path.isfile(sourcefile):
-        if action == 'move':
-            shutil.move(sourcefile, destfile)
-            print('Moved ' + sourcefile + ' to ' + destfile + '.')
-        elif action == 'copy':
-            shutil.copyfile(sourcefile, destfile)
-            print('Copied ' + sourcefile + ' to ' + destfile + '.')
-    else:
-        print('Did not find ' + sourcefile + ' to get.')
-
-
-def pushto(dir, origfile, action):
-    if action is None:
-        return
-    if os.path.isfile(origfile):
-        if action == 'move':
-            destfile = dir + os.path.basename(origfile)
-            shutil.move(origfile, destfile)
-            print('Moved ' + origfile + ' to ' + destfile + '.')
-        elif action == 'copy':
-            destfile = dir + os.path.basename(origfile)
-            shutil.copyfile(origfile, destfile)
-            print('Copied ' + origfile + ' to ' + destfile + '.')
-        elif action == 'remove':
-            os.remove(origfile)
-            print('Removed ' + origfile + '.')
-    else:
-        print('Did not find ' + origfile + ' to push.')
-
-
-mydict = sdpdata.getdict('gradstudent')
-if mydict is not None:
-    dir = mydict.get('tempdir')
-    action = mydict.get('getaction')
-    list(map(lambda file: getfrom(dir, file, action),
-             sdpdata.xmlfilenames + [sdpdata.checkpointfile]))
+world.warmup(sdpdata, log)
 
 xmlfiles = sdpdata.xmlfilenames
 if xmlfiles:
-    print('Found instructions to create xmlfile(s).')
     if all(map(os.path.isfile, xmlfiles)):
-        sdpdata.writelog('result', 'xml file(s) already exist(s)')
+        log.write('xmlfilecreation', 'xml file(s) already exist(s)')
         success = True
     else:
         try:
+            log.write('xmlfilecreation', 'running xml file creator')
             start = time.time()
             world.createSdpFiles(sdpdata)
-            print('xml file creation duration: ' + str(time.time() - start))
+            log.write('xmlfilecreation', 'duration: ' + str(time.time() - start))
             # check if all files were created
             if all(map(os.path.isfile, xmlfiles)):
-                sdpdata.writelog('result', 'file(s) created')
+                log.write('xmlfilecreation', 'file(s) created')
                 success = True
             else:
-                sdpdata.writelog('error', 'file(s) not created')
+                log.write('xmlfilecreation', 'file(s) were not created')
                 success = False
         except subprocess.CalledProcessError as e:
-            sdpdata.writelog('error', e.returncode)
+            log.write('xmlfilecreation', e.returncode)
             success = False
         except FileNotFoundError:
-            sdpdata.writelog('error', 'sdpFilecreator not found')
+            log.write('xmlfilecreation', 'file creator not found')
             success = False
     if not success:
-        print('Could not create xml files. Exiting.')
+        log.write('status', 'done')
         exit(1)
 
 if sdpdata.sdpbargs is None:
+    log.write('status', 'done')
     exit()
-print('Found instructions to run sdpb...')
 try:
+    log.write('sdpb', 'starting sdpb')
     world.runSdpb(sdpdata)
-    print('...sdpb finished.')
+    log.write('sdpb', 'sdpb finished')
     with open(sdpdata.outfile, 'r') as of:
         # terminateReason
         # primalObjective
@@ -110,24 +71,12 @@ try:
         # runtime
         for _ in range(7):
             arr = of.readline().split('=')
-            sdpdata.writelog(arr[0].strip(' '), arr[1].strip('"; \n'))
+            log.write(arr[0].strip(' '), arr[1].strip('"; \n'))
 except subprocess.CalledProcessError as e:
-    print('...sdpb failed.')
-    sdpdata.writelog('stderr', e.stderr)
-    sdpdata.writelog('terminateReason', 'sdpb error')
+    log.write('sdpb', 'sdpb failed with error:' + e.stderr)
+    log.write('terminateReason', 'sdpb error')
 except IOError:
-    sdpdata.writelog('terminateReason', 'Out file not found')
+    log.write('terminateReason', 'no out file')
 
-mydict = sdpdata.getdict('gradstudent')
-if mydict is not None:
-    dir = mydict.get('tempdir')
-    action = mydict.get('pushaction')
-    pushwhen = mydict.get('pushwhen')
-    tr = sdpdata.getlogitem('terminateReason')
-    timedout = (tr == 'maxRuntime exceeded' or tr == 'maxIterations exceeded')
-    if pushwhen is None or \
-       (pushwhen == 'timedout' and timedout) or \
-       (pushwhen == 'nottimedout' and not timedout):
-        list(map(lambda file: pushto(dir, file, action),
-                 sdpdata.xmlfilenames + [sdpdata.checkpointfile]))
-sdpdata.writelog('submissionresult', 'completed')
+log.write('status', 'done')
+sdpdata.unlock()

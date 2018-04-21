@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import sdpdatafile
+import simplelogger
 import postdoc
 import os.path
 import sys
@@ -34,63 +35,66 @@ world = manyworlds.getworld(args.world)
 
 
 def submit(sdpdata):
+    log = simplelogger.SimpleLogWriter('sub', sdpdata.logfilename)
     print('Submitting ' + sdpdata.filename + '.')
+    sdpdata.lock()
     # log submission time
-    sdpdata.adddict('log', {}, append=False)
     now = str(datetime.datetime.now())
-    sdpdata.writelog('submissiontime', now)
     # submit
     try:
         submissionid = world.submit(sdpdata)
     except sp.CalledProcessError as e:
-        sdpdata.writelog('submissionerror', e.returncode)
+        sdpdata.unlock()
+        log.write('submissionerror', e.returncode)
         raise
     # log processid
-    sdpdata.writelog('submissionid', submissionid)
+    sdpdata.log('status', 'submitted')
+    sdpdata.log('submissionid', submissionid)
+    sdpdata.log('submissiontime', now)
     return submissionid
 
 
 def handle(oldfilename):
-    filename = postdoc.analyze(sdpdatafile.SdpDataFile(oldfilename))
+    # check status
+    filename = postdoc.analyze(oldfilename)
     if filename is None:
         print('Will not submit with ' + oldfilename + '.')
         return None
     if filename != oldfilename:
         print('File ' + oldfilename + ' replaced with ' + filename + '.')
     sdpdata = sdpdatafile.SdpDataFile(filename)
+    oldlog = simplelogger.SimpleLogReader(sdpdata.logfilename)
 
     # maxsubmissions exceeded?
-    if args.maxsubmissions and sdpdata.numlogs() > args.maxsubmissions:
-        print('Too many submissions for ' + filename)
-        return None
+    if args.maxsubmissions:
+        numsubs = oldlog.numlineswith(expr='status', bonusexpr='submitted')
+        if numsubs > args.maxsubmissions:
+            print('Too many submissions for ' + filename)
+            return None
 
     # submit if necessary
-    submissionid = sdpdata.getlogitem('submissionid')
-    submissionresult = sdpdata.getlogitem('submissionresult')
-    if submissionid is None or submissionresult == 'completed':
+    if not sdpdata.islocked:
         submissionid = submit(sdpdata)
     else:
-        print('Found existing submission for ' + filename + '.')
+        print('Found unfinished submission for ' + filename + '.')
+        submissionid = oldlog.lastbonusexprwith(expr='submissionid')
         if args.reallyrunning:
             if not world.isreallyrunning(submissionid):
-                print('Submission of ' + filename + ' seems to have failed.',
-                      file=sys.stderr)
-                sdpdata.writelog('submissionresult', 'failed')
+                print('Submission of ' + filename + ' seems to have failed.')
+                log = simplelogger.SimpleLogWriter('sub', sdpdata.logfilename)
+                log.write('status', 'failed')
+                sdpdata.unlock()
 
     # wait for completion
     if args.pause:
         print('Waiting for completion of ' + filename + '...')
         world.waitforcompletion(submissionid)
         print('...' + filename + ' completed.')
-        if sdpdata.getlogitem('terminateReason') is not None:
-            handle(sdpdata.filename)
-        else:
-            print('Submission of ' + filename + ' seems to have failed.',
-                  file=sys.stderr)
+        handle(sdpdata.filename)
 
-
+# Parallel version:
 # pool = ThreadPool(len(sdpDataFilenames))
 # results = pool.map(handle, sdpDataFilenames)
-results = list(map(handle, sdpDataFilenames))
 # pool.close()
 # pool.join()
+results = list(map(handle, sdpDataFilenames))

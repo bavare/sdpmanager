@@ -14,18 +14,37 @@ class CernWorld(manyworlds.World):
     def __init__(self):
         pass
 
-    # def _toafs(self, filename):
-    #     shutil.move(filename, self.afsdir + os.path.basename(filename))
-    #
-    # def _fromafs(self, filename):
-    #     shutil.move(self.afsdir + os.path.basename(filename), filename)
-    #
-    # def warmup(self, sdpdata):
-    #     try:
-    #         list(map(self._fromafs, sdpdata.xmlfilenames +
-    #                                    [sdpdata.checkpointfile]))
-    #     except FileNotFoundError:
-    #         pass
+    def warmup(self, sdpdata, log=None):
+        transferdict = sdpdata.getdict('filetransfer')
+        if transferdict == {}:
+            return
+        origdir = transferdict.get('origdestdir')
+        files = sdpdata.xmlfilenames + [sdpdata.outfile,
+                                        sdpdata.checkpointfile,
+                                        sdpdata.backupcheckpointfile]
+        if origdir is None:
+            origdir = self.afsdir
+        for file in files:
+            origfile = origdir + os.path.basename(file)
+            self.copyfile(origfile, file, log)
+
+    def cooldown(self, sdpdata, tr, log=None):
+        transferdict = sdpdata.getdict('filetransfer')
+        if transferdict == {}:
+            return
+        if 'onlyontimeout' in transferdict and \
+           tr != 'maxRuntime exceeded' and \
+           tr != 'maxIterations exceeded':
+            return
+        destdir = transferdict.get('origdestdir')
+        files = sdpdata.xmlfilenames + [sdpdata.outfile,
+                                        sdpdata.checkpointfile,
+                                        sdpdata.backupcheckpointfile]
+        if destdir is None:
+            destdir = self.afsdir
+        for file in files:
+            destfile = destdir + os.path.basename(file)
+            self.copyfile(file, destfile, log)
 
     def createSdpFiles(self, sdpdata, options=None):
         my_env = os.environ.copy()
@@ -112,21 +131,3 @@ class CernWorld(manyworlds.World):
         # op = sp.check_output(['condor_wait', '-wait', '-1', '-status',
         #                       logfilename, submissionid], encoding='utf-8')
         # print(op)
-
-# def cooldown(self, sdpdata):
-#     tr = sdpdata.getlogitem('terminateReason')
-#     if tr == 'maxRuntime exceeded' or tr == 'maxIterations exceeded':
-#         try:
-#             list(map(self._toafs,
-#                      sdpdata.xmlfilenames +
-#                      [sdpdata.checkpointfile, sdpdata.backupcheckpointfile]))
-#         except FileNotFoundError:
-#             print('SDPB timed out but could not salvage xml and ck files.')
-#     else:
-#         try:
-#             # list(map(os.remove, sdpdata.xmlfilenames))
-#             os.remove(sdpdata.outfile)
-#             os.remove(sdpdata.checkpointfile)
-#             os.remove(sdpdata.backupcheckpointfile)
-#         except FileNotFoundError:
-#             print('Could not find all sdpb files to remove. Oh well.')

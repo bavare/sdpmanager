@@ -1,5 +1,6 @@
 import subprocess as sp
 import os
+import shutil
 
 
 class World:
@@ -26,16 +27,43 @@ class World:
         pass
 
     def cooldown(self, sdpdata):
-        tr = sdpdata.getlogitem('terminateReason')
-        if tr == 'maxRuntime exceeded' or tr == 'maxIterations exceeded':
-            pass
+        pass
+
+    @staticmethod
+    def movefile(origfile, destfile, log=None):
+        if os.path.isfile(origfile):
+            shutil.move(origfile, destfile)
+            logmsg = 'Moved ' + origfile + ' to ' + destfile + '.'
         else:
-            try:
-                list(map(os.remove, sdpdata.xmlfilenames))
-                os.remove(sdpdata.checkpointfile)
-                os.remove(sdpdata.outfile)
-            except FileNotFoundError:
-                print('Could not find sdpb files to remove. Oh well.')
+            logmsg = 'Could not find ' + origfile + ' to move.'
+        if log is not None:
+            log.write(logmsg)
+        else:
+            print(logmsg)
+
+    @staticmethod
+    def copyfile(origfile, destfile, log=None):
+        if os.path.isfile(origfile):
+            shutil.copyfile(origfile, destfile)
+            logmsg = 'Moved ' + origfile + ' to ' + destfile + '.'
+        else:
+            logmsg = 'Could not find ' + origfile + ' to copy.'
+        if log is not None:
+            log.write(logmsg)
+        else:
+            print(logmsg)
+
+    @staticmethod
+    def removefile(origfile, log=None):
+        if os.path.isfile(origfile):
+            os.remove(origfile)
+            logmsg = 'Removed ' + origfile + '.'
+        else:
+            logmsg = 'Could not find ' + origfile + ' to remove.'
+        if log is not None:
+            log.write(logmsg)
+        else:
+            print(logmsg)
 
 
 def getworld(arg):
