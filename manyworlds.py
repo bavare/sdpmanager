@@ -45,7 +45,7 @@ class World:
     def copyfile(origfile, destfile, log=None):
         if os.path.isfile(origfile):
             shutil.copyfile(origfile, destfile)
-            logmsg = 'Moved ' + origfile + ' to ' + destfile + '.'
+            logmsg = 'Copied ' + origfile + ' to ' + destfile + '.'
         else:
             logmsg = 'Could not find ' + origfile + ' to copy.'
         if log is not None:

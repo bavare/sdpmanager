@@ -48,9 +48,9 @@ def submit(sdpdata):
         log.write('submissionerror', e.returncode)
         raise
     # log processid
-    sdpdata.log('status', 'submitted')
-    sdpdata.log('submissionid', submissionid)
-    sdpdata.log('submissiontime', now)
+    log.write('status', 'submitted')
+    log.write('submissionid', submissionid)
+    log.write('submissiontime', now)
     return submissionid
 
 
@@ -73,7 +73,7 @@ def handle(oldfilename):
             return None
 
     # submit if necessary
-    if not sdpdata.islocked:
+    if not sdpdata.islocked():
         submissionid = submit(sdpdata)
     else:
         print('Found unfinished submission for ' + filename + '.')
@@ -91,6 +91,7 @@ def handle(oldfilename):
         world.waitforcompletion(submissionid)
         print('...' + filename + ' completed.')
         handle(sdpdata.filename)
+
 
 # Parallel version:
 # pool = ThreadPool(len(sdpDataFilenames))

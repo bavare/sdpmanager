@@ -72,14 +72,23 @@ def nextinbinarysearch(sdpdata, tr):
 
 def analyze(filename):
     sdpdata = sdpdatafile.SdpDataFile(filename)
+
+    if sdpdata.islocked():
+        return filename
+
     if sdpdata.isfinished():
         return None
 
     log = simplelogger.SimpleLogReader(sdpdata.logfilename)
     tr = log.lastbonusexprwith(expr='terminateReason')
 
-    if tr is None or \
-            tr == 'maxRuntime exceeded' or \
+    # no restult - needs to be submitted
+    if tr is None:
+        return sdpdata.filename
+
+    # analyze the terminateReason
+    newfilename = None
+    if tr == 'maxRuntime exceeded' or \
             tr == 'maxIterations exceeded':
         newfilename = sdpdata.filename
     elif tr == 'maxComplementarity exceeded':
@@ -98,7 +107,6 @@ def analyze(filename):
         print('Cannot parse terminateReason in ' + sdpdata.filename + '.',
               file=sys.stderr)
         newfilename = None
-
     sdpdata.setfinished()
     return newfilename
 

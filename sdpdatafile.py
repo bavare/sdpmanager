@@ -56,7 +56,13 @@ class SdpDataFile:
     def __setxmlfilenames(root):
         xmlfilenames = []
         for child in root.findall('sdpFileData'):
-            xmlfilenames.append(child.find('filename').text)
+            # TODO: add error messages if no filename exist
+            filename = child.find('filename')
+            if filename is None:
+                raise Exception("Found 'sdpFiledata' without \
+                                attribute 'filename'.")
+            else:
+                xmlfilenames.append(filename.text)
         return xmlfilenames
 
     @staticmethod

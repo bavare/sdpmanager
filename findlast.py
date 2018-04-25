@@ -18,10 +18,11 @@ if __name__ == "__main__":
     maxlen = max(map(len, sdpDataFilenames))
     for filename in sdpDataFilenames:
         log = simplelogger.SimpleLogReader(filename)
-        val = log.lastlinewith(acro=args.acronym, expression=args.expression)
+        val = log.lastlinewith(acro=args.acronym, expr=args.expression)
         if val is None:
-            val = ""
+            val = ''
+        valstr = ' :: '.join(val)
         if args.nofilename:
-            print(val)
+            print(valstr)
         else:
-            print(filename.ljust(maxlen) + ': ' + val)
+            print(filename.ljust(maxlen) + ': ' + valstr)

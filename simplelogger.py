@@ -8,13 +8,33 @@ class SimpleLogWriter:
         self.acro = acro
         if not os.path.isfile(filename):
             open(filename, 'a').close()
+        self.fp = None
+
+    # allows 'with' but is not used because the cern world is a weird world
+    def __enter__(self):
+        self.fp = open(self.filename, 'a', 1)
+        return self
+
+    # see previous comment
+    def __exit__(self, type, value, traceback):
+        self.fp.close()
+        self.fp = None
 
     def write(self, expr, bonusexpr=None):
-        with open(self.filename, 'a') as f:
-            f.write(self.acro + ' :: ' + str(expr))
-            if bonusexpr is not None:
-                f.write(' :: ' + str(bonusexpr))
-            f.write('\n')
+        if self.fp is not None:
+            self._writep(expr, bonusexpr)
+        else:
+            self.__enter__()
+            try:
+                self._writep(expr, bonusexpr)
+            finally:
+                self.__exit__(None, None, None)
+
+    def _writep(self, expr, bonusexpr=None):
+        self.fp.write(self.acro + ' :: ' + str(expr))
+        if bonusexpr is not None:
+            self.fp.write(' :: ' + str(bonusexpr))
+        self.fp.write('\n')
 
 
 class SimpleLogReader:
@@ -61,11 +81,13 @@ class SimpleLogReader:
             if acro != line[0]:
                 return False
         if expr is not None:
-            if expr != line[1]:
-                return False
-        if bonusexpr is not None:
             if len(line) < 2:
                 return False
-            elif line[1] != bonusexpr:
+            elif line[1] != expr:
+                return False
+        if bonusexpr is not None:
+            if len(line) < 3:
+                return False
+            elif line[2] != bonusexpr:
                 return False
         return True

@@ -14,6 +14,11 @@ class CernWorld(manyworlds.World):
     def __init__(self):
         pass
 
+    @staticmethod
+    def _hide(filename):
+        path, file = os.path.split(filename)
+        return os.path.join(path, '.' + file)
+
     def warmup(self, sdpdata, log=None):
         transferdict = sdpdata.getdict('filetransfer')
         if transferdict == {}:
@@ -57,19 +62,33 @@ class CernWorld(manyworlds.World):
         my_env = os.environ.copy()
         my_env["LD_LIBRARY_PATH"] = \
             self.libdir + ":" + my_env["LD_LIBRARY_PATH"]
-        sp.run([self.sdpb] + sdpdata.sdpbargs, stderr=sp.PIPE,
-               encoding='ascii', check=True, env=my_env)
+        sp.run([self.sdpb] + sdpdata.sdpbargs,
+               stderr=sp.STDOUT,
+               check=True,         # i.e. raise an exception when sdpb fails
+               encoding='ascii',   # may need upgrading for sdpb-unicode
+               env=my_env)
+    # Code below should log sdpb output to the log file but maybe
+    # caused the "shadow exceptions" I experienced at the CERN cluster.
+    # with simplelogger.SimpleLogWriter('sdp', sdpdata.logfilename) as log:
+    #     my_env = os.environ.copy()
+    #     my_env["LD_LIBRARY_PATH"] = \
+    #         self.libdir + ":" + my_env["LD_LIBRARY_PATH"]
+    #     sdpbproc = sp.Popen([self.sdpb] + sdpdata.sdpbargs, stdout=sp.PIPE,
+    #                         stderr=sp.STDOUT, encoding='ascii', env=my_env)
+    #     for line in iter(sdpbproc.stdout.readline, ''):
+    #         log.write(line.rstrip())
 
     def submit(self, sdpdata, options=None):
         submissiondict = {"executable": self.bindir + "clusterstarter.sh",
                           "arguments": self.bindir +
                           "gradstudent.py -w cern " +
                           sdpdata.filename,
-                          "log": sdpdata.filename + '.log',
-                          "output": sdpdata.filename + '.out.' +
-                          str(sdpdata.numlogs()).zfill(3),
-                          "error": sdpdata.filename + '.err.' +
-                          str(sdpdata.numlogs()).zfill(3)}
+                          "log": self._hide(sdpdata.filename + '.condorlog'),
+                          "output": self._hide(sdpdata.filename + '.out'),
+                          # str(sdpdata.numlogs()).zfill(3),
+                          "error": self._hide(sdpdata.filename + '.err')
+                          # str(sdpdata.numlogs()).zfill(3)}
+                          }
         sdpdict = sdpdata.getdict('cluster')
         # add "+" because that's what htcondor can stomach
         if sdpdict.get('MaxRuntime'):

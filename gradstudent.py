@@ -8,8 +8,6 @@ import simplelogger
 import argparse
 import manyworlds
 
-print(os.getcwd())
-
 parser = argparse.ArgumentParser()
 parser.add_argument('filename', metavar='file', help='an sdp data file')
 parser.add_argument('-w', '--world', choices=['local', 'cern'],
@@ -27,56 +25,64 @@ log.write('status', 'running')
 world.warmup(sdpdata, log)
 
 xmlfiles = sdpdata.xmlfilenames
-if xmlfiles:
+if not xmlfiles:
+    # successfully created nothing
+    xmlsuccess = True
+else:
     if all(map(os.path.isfile, xmlfiles)):
         log.write('xmlfilecreation', 'xml file(s) already exist(s)')
-        success = True
+        xmlsuccess = True
     else:
         try:
             log.write('xmlfilecreation', 'running xml file creator')
             start = time.time()
             world.createSdpFiles(sdpdata)
-            log.write('xmlfilecreation', 'duration: ' + str(time.time() - start))
+            log.write('xmlfilecreation', 'xml file creator finished')
+            finish = time.time()
+            log.write('xmlfilecreation', 'duration: ' + str(finish - start))
             # check if all files were created
             if all(map(os.path.isfile, xmlfiles)):
                 log.write('xmlfilecreation', 'file(s) created')
-                success = True
+                xmlsuccess = True
             else:
                 log.write('xmlfilecreation', 'file(s) were not created')
-                success = False
+                xmlsuccess = False
         except subprocess.CalledProcessError as e:
             log.write('xmlfilecreation', e.returncode)
-            success = False
+            xmlsuccess = False
         except FileNotFoundError:
             log.write('xmlfilecreation', 'file creator not found')
-            success = False
-    if not success:
-        log.write('status', 'done')
-        exit(1)
+            xmlsuccess = False
 
-if sdpdata.sdpbargs is None:
-    log.write('status', 'done')
-    exit()
-try:
-    log.write('sdpb', 'starting sdpb')
-    world.runSdpb(sdpdata)
-    log.write('sdpb', 'sdpb finished')
-    with open(sdpdata.outfile, 'r') as of:
-        # terminateReason
-        # primalObjective
-        # dualObjective
-        # dualityGap
-        # primalError
-        # dualError
-        # runtime
-        for _ in range(7):
-            arr = of.readline().split('=')
-            log.write(arr[0].strip(' '), arr[1].strip('"; \n'))
-except subprocess.CalledProcessError as e:
-    log.write('sdpb', 'sdpb failed with error:' + e.stderr)
-    log.write('terminateReason', 'sdpb error')
-except IOError:
-    log.write('terminateReason', 'no out file')
+tr = None
+if sdpdata.sdpbargs is not None and xmlsuccess:
+    try:
+        log.write('starting sdpb')
+        world.runSdpb(sdpdata)
+        log.write('sdpb finished')
+        with open(sdpdata.outfile, 'r') as of:
+            # terminateReason
+            # primalObjective
+            # dualObjective
+            # dualityGap
+            # primalError
+            # dualError
+            # runtime
+            for _ in range(7):
+                arr = of.readline().split('=')
+                var = arr[0].strip(' ')
+                val = arr[1].strip('"; \n')
+                log.write(var, val)
+                if var == 'terminateReason':
+                    tr = val
+    except subprocess.CalledProcessError as e:
+        log.write('sdpb failed with error', e.stderr)
+        tr = 'sdpb error'
+        log.write('terminateReason', 'sdpb error')
+    except IOError:
+        tr = 'no out file'
+        log.write('terminateReason', 'no out file')
 
+world.cooldown(sdpdata, tr, log)
 log.write('status', 'done')
 sdpdata.unlock()
