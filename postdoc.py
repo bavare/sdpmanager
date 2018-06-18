@@ -87,11 +87,12 @@ def analyze(filename):
         return sdpdata.filename
 
     # analyze the terminateReason
-    newfilename = None
     if tr == 'maxRuntime exceeded' or \
             tr == 'maxIterations exceeded':
-        newfilename = sdpdata.filename
-    elif tr == 'maxComplementarity exceeded':
+        return sdpdata.filename
+
+    newfilename = None
+    if tr == 'maxComplementarity exceeded':
         newfilename = None
     elif tr == 'primal feasible jump detected' or \
             tr == 'dual feasible jump detected':
