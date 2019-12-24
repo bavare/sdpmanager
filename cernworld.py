@@ -24,9 +24,9 @@ class CernWorld(manyworlds.World):
         if transferdict == {}:
             return
         origdir = transferdict.get('origdestdir')
-        files = sdpdata.xmlfilenames + [sdpdata.outfile,
-                                        sdpdata.checkpointfile,
-                                        sdpdata.backupcheckpointfile]
+        files = sdpdata.xmlfilenames + [sdpdata.outfile]
+        if 'nocheckfiles' not in transferdict:
+            files += [sdpdata.checkpointfile, sdpdata.backupcheckpointfile]
         if origdir is None:
             origdir = self.afsdir
         for file in files:
@@ -52,6 +52,9 @@ class CernWorld(manyworlds.World):
             self.copyfile(file, destfile, log)
 
     def createSdpFiles(self, sdpdata, options=None):
+        executabledict = sdpdata.getdict('executables')
+        if 'sdpcreator' in executabledict:
+            self.sdpfilecreator = executabledict.get('sdpcreator')
         my_env = os.environ.copy()
         my_env["LD_LIBRARY_PATH"] = \
             self.libdir + ":" + my_env["LD_LIBRARY_PATH"]
@@ -59,6 +62,9 @@ class CernWorld(manyworlds.World):
                       encoding='ascii', check=True, env=my_env)
 
     def runSdpb(self, sdpdata, options=None):
+        executabledict = sdpdata.getdict('executables')
+        if 'sdpb' in executabledict:
+            self.sdpb = executabledict.get('sdpb')
         my_env = os.environ.copy()
         my_env["LD_LIBRARY_PATH"] = \
             self.libdir + ":" + my_env["LD_LIBRARY_PATH"]

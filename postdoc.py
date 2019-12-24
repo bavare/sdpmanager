@@ -34,6 +34,19 @@ def nextwithincreasedprecision(sdpdata):
     return newfilename
 
 
+def nextwithmitigatemaxcomp(sdpdata):
+    newfilename = addcounter(sdpdata.filename)
+    shutil.copyfile(sdpdata.filename, newfilename)
+    newsdpdata = sdpdatafile.SdpDataFileWriter(newfilename)
+    newsdpdata.update('sdpbParams',
+                      {'precision': '2000',
+                       'initialMatrixScalePrimal': '1e50',
+                       'initialMatrixScaleDual': '1e50',
+                       'maxComplementarity': '1e200'},
+                       overwrite=True)
+    return newfilename
+
+
 def nextinbinarysearch(sdpdata, tr):
     # todo: create proper copy of tree
     tree = sdpdata._tree()
@@ -93,7 +106,8 @@ def analyze(filename):
 
     newfilename = None
     if tr == 'maxComplementarity exceeded':
-        newfilename = None
+        pass
+        # newfilename = nextwithmitigatemaxcomp(sdpdata)
     elif tr == 'primal feasible jump detected' or \
             tr == 'dual feasible jump detected':
         newfilename = nextwithincreasedprecision(sdpdata)
