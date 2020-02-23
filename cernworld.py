@@ -20,22 +20,24 @@ class CernWorld(manyworlds.World):
         return os.path.join(path, '.' + file)
 
     def warmup(self, sdpdata, log=None):
-        transferdict = sdpdata.getdict('filetransfer')
-        if transferdict == {}:
+        cerndict = sdpdata.dict.get('cernworld')
+        transferdict = cerndict.get('filetransfer')
+        if transferdict is None:
             return
         origdir = transferdict.get('origdestdir')
+        if origdir is None:
+            origdir = self.afsdir
         files = sdpdata.xmlfilenames + [sdpdata.outfile,
                                         sdpdata.checkpointfile,
                                         sdpdata.backupcheckpointfile]
-        if origdir is None:
-            origdir = self.afsdir
         for file in files:
             origfile = origdir + os.path.basename(file)
             self.copyfile(origfile, file, log)
 
     def cooldown(self, sdpdata, tr, log=None):
-        transferdict = sdpdata.getdict('filetransfer')
-        if transferdict == {}:
+        cerndict = sdpdata.dict.get('cernworld')
+        transferdict = cerndict.get('filetransfer')
+        if transferdict is None:
             return
         if 'onlyontimeout' in transferdict and \
            tr != 'maxRuntime exceeded' and \
@@ -52,6 +54,10 @@ class CernWorld(manyworlds.World):
             self.copyfile(file, destfile, log)
 
     def createSdpFiles(self, sdpdata, options=None):
+        cerndict = sdpdata.dict.get('cernworld')
+        executabledict = cerndict.get('executables')
+        if 'sdpcreator' in executabledict:
+            self.sdpfilecreator = executabledict.get('sdpcreator')
         my_env = os.environ.copy()
         my_env["LD_LIBRARY_PATH"] = \
             self.libdir + ":" + my_env["LD_LIBRARY_PATH"]
@@ -59,6 +65,10 @@ class CernWorld(manyworlds.World):
                       encoding='ascii', check=True, env=my_env)
 
     def runSdpb(self, sdpdata, options=None):
+        cerndict = sdpdata.dict.get('cernworld')
+        executabledict = cerndict.get('executables')
+        if 'sdpb' in executabledict:
+            self.sdpb = executabledict.get('sdpb')
         my_env = os.environ.copy()
         my_env["LD_LIBRARY_PATH"] = \
             self.libdir + ":" + my_env["LD_LIBRARY_PATH"]
@@ -81,7 +91,7 @@ class CernWorld(manyworlds.World):
     def submit(self, sdpdata, options=None):
         submissiondict = {"executable": self.bindir + "clusterstarter.sh",
                           "arguments": self.bindir +
-                          "gradstudent.py -w cern " +
+                          "worker.py -w cern " +
                           sdpdata.filename,
                           "log": self._hide(sdpdata.filename + '.condorlog'),
                           "output": self._hide(sdpdata.filename + '.out'),
@@ -89,12 +99,13 @@ class CernWorld(manyworlds.World):
                           "error": self._hide(sdpdata.filename + '.err')
                           # str(sdpdata.numlogs()).zfill(3)}
                           }
-        sdpdict = sdpdata.getdict('cluster')
-        # add "+" because that's what htcondor can stomach
-        if sdpdict.get('MaxRuntime'):
-            sdpdict['+MaxRuntime'] = sdpdict['MaxRuntime']
-            del sdpdict['MaxRuntime']
-        submissiondict.update(sdpdict)
+        sdpdict = sdpdata.dict.get('cernworld').get('cluster')
+        if sdpdict is not None:
+            # add "+" because that's what htcondor can stomach
+            if sdpdict.get('MaxRuntime'):
+                sdpdict['+MaxRuntime'] = sdpdict['MaxRuntime']
+                del sdpdict['MaxRuntime']
+            submissiondict.update(sdpdict)
         op = sp.check_output(['condor_submit', '-terse'],
                              input=str(htc.Submit(submissiondict)),
                              encoding='utf-8')

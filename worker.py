@@ -10,8 +10,10 @@ import manyworlds
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filename', metavar='file', help='an sdp data file')
-parser.add_argument('-w', '--world', choices=['local', 'cern'],
+parser.add_argument('-w', '--world', choices=['local', 'cern', 'fake'],
                     help='select the local environment', required=True)
+parser.add_argument('-no', '--nooverwrite', action='store_true',
+                    help="do not run input file creator if xml files exist")
 args = parser.parse_args()
 if not os.path.isfile(args.filename):
     print('Could not find sdp data file(s)', file=sys.stderr)
@@ -29,7 +31,7 @@ if not xmlfiles:
     # successfully created nothing
     xmlsuccess = True
 else:
-    if all(map(os.path.isfile, xmlfiles)):
+    if args.nooverwrite and all(map(os.path.isfile, xmlfiles)):
         log.write('xmlfilecreation', 'xml file(s) already exist(s)')
         xmlsuccess = True
     else:
@@ -84,5 +86,4 @@ if sdpdata.sdpbargs is not None and xmlsuccess:
         log.write('terminateReason', 'no out file')
 
 world.cooldown(sdpdata, tr, log)
-log.write('status', 'done')
-sdpdata.unlock()
+log.setstatus('finished')

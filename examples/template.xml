@@ -1,0 +1,45 @@
+<sdp>
+<analyzer>
+    <binarysearch />
+    <varname>deltaPhi</varname>
+    <primalpt></primapt>
+    <dualpt></dualpt>
+    <threshold></threshold>
+</analyzer>
+<analyzer>
+    <maximumsearch />
+    <varname></varname>
+    <left></left>
+    <right></right>
+    <middle></middle>
+    <threshold></threshold>
+</analyzer>
+<sdpFileData>
+    <nbFile>Bootstrap2dExample.nb</nbFile>
+    <filename>bleh.xml</filename>
+    <deltaPhi>0.125</deltaPhi>
+    <deltaPhisq>1.5</deltaPhisq>
+    <derOrder>7</derOrder>
+    <poleOrder>10</poleOrder>
+    <maxspin>15</maxspin>
+    <h1>10</h1>
+</sdpFileData>
+<sdpbData>
+    <params>
+        <precision>200</precision>
+    </params>
+    <argString>--noFinalCheckpoint</argString>
+    <autosdpFiles />
+</sdpbData>
+<cernworld>
+    <cluster>
+    </cluster>
+    <filetransfer>
+        <origdestdir>afs/cern.ch/work/v/vanrees/tmp/</origdestdir>
+    </filetransfer>
+    <executables>
+        <filecreator>qftinadsz2-exe</filecreator>
+        <sdpb>sdpb</sdpb>
+    </executables>
+</cernworld>
+</sdp>

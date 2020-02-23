@@ -1,1 +1,7 @@
 __pycache__/
+.DS_Store
+.ropeproject
+examples/*/*.log
+examples/binarysearch/binarysearch.00?.*
+examples/multiple/multiple_?.*
+examples/*/work/

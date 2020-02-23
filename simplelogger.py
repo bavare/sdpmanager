@@ -1,7 +1,34 @@
 import os.path
 
+statuses = ['tosubmit',
+            'submitted',
+            'running',
+            # done on the node:
+            'finished',
+            # analyzed and no further action needed:
+            'concluded',
+            'failed']
+
 
 class SimpleLogWriter:
+    """
+    Simple log writer function.
+
+    A progran should create an instance of this class with a (conventionally
+    three-letter) acronym and a filename. Then call the 'write' function with
+    an expression to log and a bonusexpression. The written line is then:
+
+    acro :: expression :: bonusexpression
+
+    or
+
+    acro :: expression
+
+    if bonusexpression is none.
+
+    Special entries are those where expression is 'status'. The bonusexpression
+    can then be only an element of statuses and set through setstatus.
+    """
 
     def __init__(self, acro, filename):
         self.filename = os.path.abspath(filename)
@@ -30,6 +57,10 @@ class SimpleLogWriter:
             finally:
                 self.__exit__(None, None, None)
 
+    def setstatus(self, status):
+        assert status in statuses
+        self.write('status', status)
+
     def _writep(self, expr, bonusexpr=None):
         self.fp.write(self.acro + ' :: ' + str(expr))
         if bonusexpr is not None:
@@ -38,6 +69,10 @@ class SimpleLogWriter:
 
 
 class SimpleLogReader:
+    """
+    Simple log reader class. Offers a few search functions. Assumes the log
+    to have the format described in SimpleLogWriter.
+    """
 
     def __init__(self, filename):
         self.filename = os.path.abspath(filename)
@@ -74,6 +109,11 @@ class SimpleLogReader:
         lastline = self.lastlinewith(acro, expr, bonusexpr)
         if lastline is not None:
             return lastline[2]
+
+    def getstatus(self):
+        status = self.lastbonusexprwith(expr='status')
+        assert status in statuses or status is None
+        return status
 
     @staticmethod
     def _match(line, acro=None, expr=None, bonusexpr=None):

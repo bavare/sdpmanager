@@ -1,0 +1,29 @@
+<sdp>
+  <sdpFileData>
+    <function>maxOPESDPSingle</function>
+    <filename>work/multiple_sdpb.xml</filename>
+    <derOrder>10</derOrder>
+    <rhoOrder>10</rhoOrder>
+    <h1></h1>
+    <h3>2</h3>
+    <gap>4</gap>
+  </sdpFileData>
+  <sdpbData>
+    <params>
+      <precision>200</precision>
+    </params>
+    <argString>--noFinalCheckpoint</argString>
+    <autosdpFiles />
+  </sdpbData>
+  <cernworld>
+    <cluster>
+    </cluster>
+    <filetransfer>
+      <origdestdir>afs/cern.ch/work/v/vanrees/tmp/</origdestdir>
+    </filetransfer>
+    <executables>
+      <filecreator>qftinadsz2-exe</filecreator>
+      <sdpb>sdpb</sdpb>
+    </executables>
+  </cernworld>
+</sdp>
