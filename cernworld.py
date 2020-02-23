@@ -25,11 +25,11 @@ class CernWorld(manyworlds.World):
         if transferdict is None:
             return
         origdir = transferdict.get('origdestdir')
+        files = sdpdata.xmlfilenames + [sdpdata.outfile]
+        if 'nocheckfiles' not in transferdict:
+            files += [sdpdata.checkpointfile, sdpdata.backupcheckpointfile]
         if origdir is None:
             origdir = self.afsdir
-        files = sdpdata.xmlfilenames + [sdpdata.outfile,
-                                        sdpdata.checkpointfile,
-                                        sdpdata.backupcheckpointfile]
         for file in files:
             origfile = origdir + os.path.basename(file)
             self.copyfile(origfile, file, log)
