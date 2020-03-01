@@ -15,12 +15,12 @@ validtrlist = ['maxComplementarity exceeded',
 
 def addcounter(filename):
     filenameroot, filenamext = os.path.splitext(filename)
-    filenamebare, counter = os.path.splitext(filenameroot)
-    if counter:
-        counter = '.' + str(int(counter.strip('.')) + 1).zfill(3)
+    filenamebare, maybecounter = os.path.splitext(filenameroot)
+    if maybecounter[:6] == '.count':
+        counter = '.count' + str(int(maybecounter[6:]) + 1).zfill(3)
+        return filenamebare + counter + filenamext
     else:
-        counter = '.001'
-    return filenamebare + counter + filenamext
+        return filenamebare + maybecounter + '.count001' + filenamext
 
 
 def nextinbinarysearch(sdpdata, tr):

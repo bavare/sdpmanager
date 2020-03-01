@@ -3,5 +3,7 @@ __pycache__/
 .ropeproject
 examples/*/*.log
 examples/binarysearch/binarysearch.00?.*
+examples/binarysearch/.binarysearch.*
 examples/multiple/multiple_?.*
+examples/multiple/.multiple_?.*
 examples/*/work/

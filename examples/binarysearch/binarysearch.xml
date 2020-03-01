@@ -25,13 +25,12 @@
 </sdpbData>
 <cernworld>
     <cluster>
+        <JobFlavour>"espresso"</JobFlavour>
+        <MaxRuntime>120</MaxRuntime>
     </cluster>
     <filetransfer>
-        <origdestdir>afs/cern.ch/work/v/vanrees/tmp/</origdestdir>
+      <origdestdir>/afs/cern.ch/user/v/vanrees/sdpmanager/examples/binarysearch/</origdestdir>
+      <ckfile/>
     </filetransfer>
-    <executables>
-        <filecreator>qftinadsz2-exe</filecreator>
-        <sdpb>sdpb</sdpb>
-    </executables>
 </cernworld>
 </sdp>

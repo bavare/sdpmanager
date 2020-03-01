@@ -36,6 +36,8 @@ else:
         xmlsuccess = True
     else:
         try:
+            for xmlfile in xmlfiles:
+                world.checkorcreatedir(xmlfile, log)
             log.write('xmlfilecreation', 'running xml file creator')
             start = time.time()
             world.createSdpFiles(sdpdata)

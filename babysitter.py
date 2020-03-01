@@ -9,7 +9,7 @@ import os.path
 import sys
 import manyworlds
 import subprocess as sp
-# from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing.dummy import Pool as ThreadPool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filenames', metavar='fn', nargs='+',
@@ -131,8 +131,8 @@ def handle(filename):
 
 
 # Parallel version:
-# pool = ThreadPool(len(sdpDataFilenames))
-# results = pool.map(handle, sdpDataFilenames)
-# pool.close()
-# pool.join()
-results = list(map(handle, sdpDataFilenames))
+pool = ThreadPool(len(sdpDataFilenames))
+results = pool.map(handle, sdpDataFilenames)
+pool.close()
+pool.join()
+# results = list(map(handle, sdpDataFilenames))

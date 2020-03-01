@@ -17,13 +17,7 @@
   </sdpbData>
   <cernworld>
     <cluster>
+      <MaxRuntime>120</MaxRuntime>
     </cluster>
-    <filetransfer>
-      <origdestdir>afs/cern.ch/work/v/vanrees/tmp/</origdestdir>
-    </filetransfer>
-    <executables>
-      <filecreator>qftinadsz2-exe</filecreator>
-      <sdpb>sdpb</sdpb>
-    </executables>
   </cernworld>
 </sdp>

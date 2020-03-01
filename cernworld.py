@@ -1,3 +1,4 @@
+
 import subprocess as sp
 import os
 import manyworlds
@@ -25,13 +26,16 @@ class CernWorld(manyworlds.World):
         if transferdict is None:
             return
         origdir = transferdict.get('origdestdir')
-        files = sdpdata.xmlfilenames + [sdpdata.outfile]
-        if 'nocheckfiles' not in transferdict:
-            files += [sdpdata.checkpointfile, sdpdata.backupcheckpointfile]
         if origdir is None:
             origdir = self.afsdir
+        files = []
+        if 'xmlfiles' in transferdict:
+            files += sdpdata.xmlfilenames
+        if 'ckfile' in transferdict:
+            files += [sdpdata.checkpointfile]
         for file in files:
-            origfile = origdir + os.path.basename(file)
+            # We allow 'file' to contain a relative path.
+            origfile = origdir + file
             self.copyfile(origfile, file, log)
 
     def cooldown(self, sdpdata, tr, log=None):
@@ -44,20 +48,28 @@ class CernWorld(manyworlds.World):
            tr != 'maxIterations exceeded':
             return
         destdir = transferdict.get('origdestdir')
-        files = sdpdata.xmlfilenames + [sdpdata.outfile,
-                                        sdpdata.checkpointfile,
-                                        sdpdata.backupcheckpointfile]
         if destdir is None:
             destdir = self.afsdir
+        files = []
+        if 'xmlfiles' in transferdict:
+            files += sdpdata.xmlfilenames
+        if 'outfile' in transferdict:
+            files += [sdpdata.outfile]
+        if 'ckfile' in transferdict:
+            files += [sdpdata.checkpointfile]
+        if 'ckbkfile' in transferdict:
+            files += [sdpdata.backupcheckpointfile]
         for file in files:
-            destfile = destdir + os.path.basename(file)
+            # We allow 'file' to contain a relative path.
+            destfile = destdir + file
             self.copyfile(file, destfile, log)
 
     def createSdpFiles(self, sdpdata, options=None):
         cerndict = sdpdata.dict.get('cernworld')
         executabledict = cerndict.get('executables')
-        if 'sdpcreator' in executabledict:
-            self.sdpfilecreator = executabledict.get('sdpcreator')
+        if executabledict is not None:
+            if 'sdpcreator' in executabledict:
+                self.sdpfilecreator = executabledict.get('sdpcreator')
         my_env = os.environ.copy()
         my_env["LD_LIBRARY_PATH"] = \
             self.libdir + ":" + my_env["LD_LIBRARY_PATH"]
@@ -67,8 +79,9 @@ class CernWorld(manyworlds.World):
     def runSdpb(self, sdpdata, options=None):
         cerndict = sdpdata.dict.get('cernworld')
         executabledict = cerndict.get('executables')
-        if 'sdpb' in executabledict:
-            self.sdpb = executabledict.get('sdpb')
+        if executabledict is not None:
+            if 'sdpb' in executabledict:
+                self.sdpb = executabledict.get('sdpb')
         my_env = os.environ.copy()
         my_env["LD_LIBRARY_PATH"] = \
             self.libdir + ":" + my_env["LD_LIBRARY_PATH"]
@@ -89,10 +102,12 @@ class CernWorld(manyworlds.World):
     #         log.write(line.rstrip())
 
     def submit(self, sdpdata, options=None):
-        submissiondict = {"executable": self.bindir + "clusterstarter.sh",
+        submissiondict = {#"executable": self.bindir + "worker.py",
+                          #"arguments": "-w cern" + sdpdata.filename,
+                          "executable": self.bindir + "clusterstarter.sh",
                           "arguments": self.bindir +
                           "worker.py -w cern " +
-                          sdpdata.filename,
+                           sdpdata.filename,
                           "log": self._hide(sdpdata.filename + '.condorlog'),
                           "output": self._hide(sdpdata.filename + '.out'),
                           # str(sdpdata.numlogs()).zfill(3),
@@ -105,6 +120,9 @@ class CernWorld(manyworlds.World):
             if sdpdict.get('MaxRuntime'):
                 sdpdict['+MaxRuntime'] = sdpdict['MaxRuntime']
                 del sdpdict['MaxRuntime']
+            if sdpdict.get('JobFlavour'):
+                sdpdict['+JobFlavour'] = sdpdict['JobFlavour']
+                del sdpdict['JobFlavour']
             submissiondict.update(sdpdict)
         op = sp.check_output(['condor_submit', '-terse'],
                              input=str(htc.Submit(submissiondict)),

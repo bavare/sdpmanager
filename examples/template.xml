@@ -36,9 +36,14 @@
     </cluster>
     <filetransfer>
         <origdestdir>afs/cern.ch/work/v/vanrees/tmp/</origdestdir>
+        </onlyontimeout>
+        <ckfile/>
+        <bkckfile/>
+        <xmlfiles/>
+        <outfile/>
     </filetransfer>
     <executables>
-        <filecreator>qftinadsz2-exe</filecreator>
+        <sdpcreator>qftinadsz2-exe</sdpcreator>
         <sdpb>sdpb</sdpb>
     </executables>
 </cernworld>

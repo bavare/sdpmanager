@@ -1,0 +1,4 @@
+# run at 12 and 42 past the hour
+# 12,42 * * * * lxplus.cern.ch cd /afs/cern.ch/user/v/vanrees/sdpmanager/examples/binarysearch; ../../babysitter.py -w cern *.xml
+# run every two minutes
+*/2 * * * * lxplus.cern.ch cd /afs/cern.ch/user/v/vanrees/sdpmanager/examples/binarysearch; ../../babysitter.py -w cern *.xml

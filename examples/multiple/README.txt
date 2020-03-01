@@ -10,7 +10,10 @@ To run in sequence:
 
 ../../babysitter.py -w local *.xml -p
 
+To run at CERN:
+
+../../babysitter.py -w cern *.xml
+
 To clean:
 
-rm *_[0-9].* work/*
-
+rm *_[0-9].* work/* .multiple_*

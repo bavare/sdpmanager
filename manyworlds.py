@@ -46,10 +46,27 @@ class World:
                       encoding='ascii', check=True)
 
     @staticmethod
-    def movefile(origfile, destfile, log=None):
+    def checkorcreatedir(dest, log=None):
+        """
+        Check that a file can be written to 'dest', which can be
+        either a directory or a filename.
+        """
+        destdir = os.path.dirname(dest)
+        if  destdir != "":
+            if not os.path.exists(destdir):
+                os.makedirs(destdir)
+                if log is not None:
+                    log.write('Created destination ' + destdir + '.')
+                else:
+                    print('Created destination ' + destdir + '.')
+
+
+    @staticmethod
+    def movefile(origfile, dest, log=None):
         if os.path.isfile(origfile):
-            shutil.move(origfile, destfile)
-            logmsg = 'Moved ' + origfile + ' to ' + destfile + '.'
+            World.checkorcreatedir(dest, log)
+            shutil.move(origfile, dest)
+            logmsg = 'Moved ' + origfile + ' to ' + dest + '.'
         else:
             logmsg = 'Could not find ' + origfile + ' to move.'
         if log is not None:
@@ -58,10 +75,14 @@ class World:
             print(logmsg)
 
     @staticmethod
-    def copyfile(origfile, destfile, log=None):
+    def copyfile(origfile, dest, log=None):
+        """
+        Copy a file to dest, which can be either a file or a directory.
+        """
         if os.path.isfile(origfile):
-            shutil.copyfile(origfile, destfile)
-            logmsg = 'Copied ' + origfile + ' to ' + destfile + '.'
+            World.checkorcreatedir(dest, log)
+            shutil.copy(origfile, dest)
+            logmsg = 'Copied ' + origfile + ' to ' + dest + '.'
         else:
             logmsg = 'Could not find ' + origfile + ' to copy.'
         if log is not None:
