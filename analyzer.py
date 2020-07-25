@@ -40,6 +40,8 @@ def nextinbinarysearch(sdpdata, tr):
             tr == 'dual feasible jump detected':
         newprimal = oldprimal
         newdual = varval
+    else:
+        raise ValueError('not sure what to do with terminateReason: ' + tr)
 
     newvarval = (newdual + newprimal)/2
 
@@ -90,6 +92,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     sdpDataFilenames = args.filenames
     for filename in sdpDataFilenames:
-        an = analyze(filename)
+        sdpdata = sdpdatafile.SdpDataFile(filename)
+        log = simplelogger.SimpleLogReader(sdpdata.logfilename)
+        tr = log.lastbonusexprwith(expr='terminateReason')
+        primopt = log.lastbonusexprwith(expr='primalObjective')
+        an = analyze(sdpdata, tr, primopt)
         if an is not None:
             print(an)

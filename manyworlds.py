@@ -94,7 +94,7 @@ class World:
     def removefile(origfile, log=None):
         if os.path.isfile(origfile):
             os.remove(origfile)
-            logmsg = 'Removed ' + origfile + '.'
+            logmsg = 'Removed: ' + origfile
         else:
             logmsg = 'Could not find ' + origfile + ' to remove.'
         if log is not None:

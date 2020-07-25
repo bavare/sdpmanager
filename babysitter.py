@@ -9,7 +9,7 @@ import os.path
 import sys
 import manyworlds
 import subprocess as sp
-from multiprocessing.dummy import Pool as ThreadPool
+# from multiprocessing.dummy import Pool as ThreadPool
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filenames', metavar='fn', nargs='+',
@@ -34,6 +34,8 @@ if not all(map(os.path.isfile, sdpDataFilenames)):
 sdpDataFilenames = list(map(os.path.abspath, sdpDataFilenames))
 world = manyworlds.getworld(args.world)
 
+def inlineprint(expr):
+    print(expr, end=' ', flush=True)
 
 def submit(sdpdata):
     logw = simplelogger.SimpleLogWriter('sub', sdpdata.logfilename)
@@ -62,68 +64,72 @@ def handle(filename):
     status = log.getstatus()
 
     if status == 'concluded':
-        print('All done with ' + filename + '.')
+        inlineprint('all done.')
     elif status is None or status == 'tosubmit':
-        print('Submitting ' + filename + '...')
+        inlineprint('submitting...')
         submit(sdpdata)
         handle(filename)
     elif status == 'failed':
         if args.force:
-            print('Force resubmitting of failed ' + filename + '...')
+            inlineprint('failed; forced resubmission...')
             submit(sdpdata)
             handle(filename)
         else:
-            print('Failed submission of ' + filename + '.')
+            inlineprint('failed.')
     elif status == 'submitted' or status == 'running':
-        print('Successful but uncompleted submission for ' + filename + '.')
+        inlineprint('submitted.')
         if args.reallyrunning:
+            inlineprint('checking...')
             submissionid = log.lastbonusexprwith(expr='submissionid')
             if world.isreallyrunning(submissionid):
-                print('Checked that ' + filename + ' is running.')
+                inlineprint('is really running.')
             else:
-                print('Checked that ' + filename + ' is NOT running.')
+                inlineprint('is NOT really running:')
                 logw.setstatus('failed')
                 handle(filename)
         if args.pause:
-            print('Waiting for completion of ' + filename + '...')
+            inlineprint('waiting for completion...')
             submissionid = log.lastbonusexprwith(expr='submissionid')
             world.waitforcompletion(submissionid)
-            print('...' + filename + ' completed.')
+            inlineprint('completed.')
             handle(filename)
     elif status == 'finished':
         tr = log.lastbonusexprwith(expr='terminateReason')
         primopt = log.lastbonusexprwith(expr='primalObjective')
         if tr == 'maxRuntime exceeded' or \
                 tr == 'maxIterations exceeded':
+            inlineprint('ran out of time.')
             if args.maxsubmissions and \
                     log.numlineswith(expr='status', bonusexpr='submitted') >= \
                     args.maxsubmissions:
-                print('Too many submissions for ' + filename + '.')
-                logw.write('too many submissions')
+                inlineprint('too many submissions to resubmit.')
+                logw.write('too many submissions.')
                 logw.setstatus('failed')
-                handle(sdpdata)
+                handle(filename)
             else:
-                print('Resubmitting ' + sdpdata.filename + '.')
+                inlineprint('resubmitting... ')
                 submit(sdpdata)
-                handle(sdpdata)
+                handle(filename)
         else:  # i.e. terminateReason is not timed out
             try:
                 newfilename = analyzer.analyze(sdpdata, tr, primopt)
             except ValueError:
                 logw.write('analyzer failed with ValueError')
                 logw.setstatus('failed')
+                inlineprint('could not analyze the result.')
                 handle(filename)
             else:
                 logw.setstatus('concluded')
                 if newfilename is None:
-                    print('All done with ' + filename + '.')
+                    inlineprint('done.')
                 elif newfilename == filename:
-                    print('File ' + filename + ' needs to be resubmitted.')
+                    inlineprint('resubmitting according to analyzer...')
                     logw.setstatus('tosubmit')
                     handle(filename)
                 else:
-                    print('File ' + filename + ' replaced with ' +
-                          newfilename + '.')
+                    print('replaced -->')
+                    inlineprint(os.path.basename(newfilename) + ' :')
+                    logw.write('replaced with', newfilename)
                     handle(newfilename)
     else:
         # How did you get here?
@@ -131,8 +137,12 @@ def handle(filename):
 
 
 # Parallel version:
-pool = ThreadPool(len(sdpDataFilenames))
-results = pool.map(handle, sdpDataFilenames)
-pool.close()
-pool.join()
-# results = list(map(handle, sdpDataFilenames))
+# pool = ThreadPool(len(sdpDataFilenames))
+# results = pool.map(handle, sdpDataFilenames)
+# pool.close()
+# pool.join()
+
+for sdpDataFilename in sdpDataFilenames:
+    inlineprint(os.path.basename(sdpDataFilename) + ' :')
+    handle(sdpDataFilename)
+    print()
